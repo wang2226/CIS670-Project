@@ -1,0 +1,55 @@
+---
+title: "CIS670 Project"
+author: "Grayson Guan, Haoran Wang"
+date: "5/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.
+
+## Load Datasets
+
+There are 11 csv files in total:
+
+```{r message = FALSE}
+case <- read.csv('./Data/Case.csv')
+patient <- read.csv('./Data/PatientInfo.csv')
+policy <- read.csv('./Data/Policy.csv')
+region <- read.csv('./Data/Region.csv')
+searchtrend <- read.csv('./Data/SearchTrend.csv')
+seoulfloating <- read.csv('./Data/SeoulFloating.csv')
+time <- read.csv('./Data/Time.csv')
+timeage <- read.csv('./Data/TimeAge.csv')
+timegender <- read.csv('./Data/TimeGender.csv')
+timeprovince <- read.csv('./Data/TimeProvince.csv')
+weather <- read.csv('./Data/Weather.csv')
+```
+
+## Load Libraries
+
+```{r mesage = FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Province with the Highest Confirmed Cases
+
+```{r message = FALSE}
+# Group number of patients by province
+byprovince <- patient%>%group_by(province)%>%summarise(n=n())
+# Reorder by the number of patients in each province
+byprovince <- byprovince[c(order(-byprovince$n)),]
+
+ggplot(byprovince, aes(y=n, x=reorder(province,n), fill=province)) +
+    geom_bar(stat="identity") +
+    coord_flip() +
+    xlab("Province Name") +
+    ylab("Confirmed Cases") +
+    ggtitle(label = "Confirmed Cases in Each Province")
+```
