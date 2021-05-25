@@ -29,6 +29,8 @@ timeage <- read.csv('./Data/TimeAge.csv')
 timegender <- read.csv('./Data/TimeGender.csv')
 timeprovince <- read.csv('./Data/TimeProvince.csv')
 weather <- read.csv('./Data/Weather.csv')
+route <- read.csv('./Data/routes.csv')
+patient_1 <- read.csv('./Data/patients.csv')
 ```
 
 ## Load Libraries
@@ -36,6 +38,13 @@ weather <- read.csv('./Data/Weather.csv')
 ```{r mesage = FALSE}
 library(tidyverse)
 library(ggplot2)
+library(ggmap)
+library(gganimate)
+
+library(tibbletime)
+library(data.table)
+library(htmltools)
+library(leaflet)
 ```
 
 ## Province with the Highest Confirmed Cases
@@ -52,4 +61,106 @@ ggplot(byprovince, aes(y=n, x=reorder(province,n), fill=province)) +
     xlab("Province Name") +
     ylab("Confirmed Cases") +
     ggtitle(label = "Confirmed Cases in Each Province")
+```
+## Visualize Cases on a Map
+```{r message = FALSE}
+case$longitude <- as.numeric(as.character(case$longitude))
+case$latitude <- as.numeric(as.character(case$latitude))
+
+# Set Google API key
+register_google(key = "AIzaSyCiHpBw6DsGxXs6pgfgQTd2tP4wAvzrmJI")
+# Get Map from Google Maps API
+map = get_googlemap(center = c(lon = 127.7669, lat = 35.9087),
+                    zoom = 7, scale = 4,
+                    maptype = 'roadmap',
+                    color = 'color')
+
+figure <- ggmap(map) +
+    theme_void() +
+    ggtitle("COVID-19 Cases in South Korea") +
+    scale_color_gradientn(colors = rainbow(5)) +
+    theme(plot.title = element_text(color = "blue"),
+          panel.border = element_rect(color = "grey", fill = NA, size = 2))
+
+figure + geom_point(data = case, 
+                    aes(longitude, latitude, size= confirmed, 
+                        color=confirmed, group=confirmed))
+```
+
+## Massive Infection Visualization
+```{r message = FALSE}
+# Known Group Infection Events
+group_infec <- tibble(lon = c(127.0518049,126.9165592,127.1217472,128.7368285,129.0771404,128.4941047,128.5707814,128.5665743,128.9099632),
+                          lat = c(37.2367708,37.6338843,37.3881528,35.6486172,35.2159947,36.0579173,35.8507155,35.8397168,36.9273528),
+                          address = c('650-103 mangpo-dong, yeongtong-gu, suwon, gyeonggi-do, south korea','1021 tongil-ro, jingwan-dong, eunpyeong-gu, seoul, south korea','20 seohyeon-ro 180(baekpalsip)beo, seohyeon-dong, bundang-gu, seongnam-si, gyeonggi-do, south korea','100-1 beomgok-ri, hwayang-eup, cheongdo, gyeongsangbuk-do, south korea','436-8 oncheon 1(il)-dong, dongnae-gu, busan, south korea','918 yuhak-ro, gasan-myeon, chilgok-gun, gyeongsangbuk-do, south korea','72-10 seongdang-dong, dalseo-gu, daegu, south korea','81 daemyeong-ro, daemyeong 10(sip)-dong, nam-gu, daegu, south korea','916 soro-ri, chunyang-myeon, bonghwa-gun, gyeongsangbuk-do, south korea'),
+                          korean_name = c('수원 생명샘교회','은평 성모병원','분당 제생병원','청도 대남병원','부산 온천교회','칠곡 밀알 사랑의집','대구 한마음아파트','대구 신천지 교회','봉화 푸른 요양원'),
+                          english_name = c('Soowon Saengmyungsame Church','Eunpyung Sungmo Hospital','Boondang Jesaeng Hospital','Chungdo Daenam Hospital','Busan Onchun Church','Chilgok Milal Sarang House','Daegu Hanmaeum Apartment','Daegu Sinchunji Church','Bonghwa Pureun Clinic'),
+                          n_of_infections= c(10,14,11,118,34,22,46,4482,51))
+
+# Pre-processing
+group_infec_2 <- group_infec %>% select(lon,lat,korean_name,english_name,n_of_infections) %>% 
+  rename(latitude2 = lat, longitude2 = lon, id = english_name) %>% 
+  as.data.table() 
+
+group_infec_3 <- group_infec_2[, list(label=HTML(
+  paste(sep = "<br>",
+        paste("G.I(eng): ", id),
+        paste("G.I(kor): ", korean_name),
+        paste("Num of infects:", n_of_infections)))),
+  list(id, longitude2, latitude2)]
+
+#Combining route and patient and pre-processing
+
+agg_1 <- route %>% left_join(patient_1, by="global_id") %>% 
+  mutate(infected_by = ifelse(is.na(infected_by),"Unk",infected_by)) %>% 
+  as.data.table
+
+agg_2 <- agg_1[, list(label=HTML(
+  paste(sep="<br>",
+        paste("Patient Id :", global_id),
+        paste("Sex :", sex),
+        paste("Country :", country),
+        paste("Disease :", disease),
+        paste("Group:", group),
+        paste("Infection_reason:", infection_reason),
+        paste("Infection_order:",  infection_order),
+        paste("Infected_by:", infected_by),
+        paste("Contact_number:", contact_number),
+        paste("Confirmed_date:", confirmed_date),
+        paste("State:", state)))), 
+  list(global_id, longitude, latitude)]
+
+listed <- list(agg_2, group_infec_3)
+agg_3 <- rbindlist(listed, use.names = TRUE, fill = TRUE)
+
+agg_3 %>% 
+  leaflet() %>%
+  setView(128.5, 36.5, zoom = 7) %>%
+  addTiles() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  #addProviderTiles : Stamen.Toner, CartoDB.Positron, Esri.NatGeoWorldMap, MtbMap
+  addCircleMarkers(
+    lat =  ~ latitude,
+    lng =  ~ longitude,
+    label = ~label,
+    clusterOptions = markerClusterOptions(),
+    labelOptions = labelOptions(noHide = F, 
+                                direction = "left",
+                                style = list(
+                                  "color" = "black",
+                                  "box-shadow" = "4px 4px rgba(0,0,0,0.25)",
+                                  "font-size" = "13px",
+                                  "border-color" = "rgba(0.5,3,0.5,0.5)"))) %>% 
+  
+  #Addding group infections
+  addMarkers(
+    lat =  ~ latitude2,
+    lng =  ~ longitude2,
+    label = ~label,
+    labelOptions = labelOptions(noHide = F, 
+                                direction = "right",
+                                style = list(
+                                  "color" = "red",
+                                  "font-size" = "13px")))
+
 ```
