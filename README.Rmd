@@ -2,11 +2,15 @@
 title: "CIS670 Project: Analyze COVID-19 in South Korea"
 author: "Grayson Guan, Haoran Wang"
 date: "5/1/2021"
-output: html_notebook
+output: 
+  html_document:
+    keep_md: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
 ```
 
 ## Introduction
