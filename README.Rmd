@@ -1,8 +1,13 @@
 ---
+title: "CIS670 Project: Analyze COVID-19 in South Korea"
+author: "Grayson Guan, Haoran Wang"
+date: "5/1/2021"
 output: 
   html_document:
     keep_md: true
 ---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
