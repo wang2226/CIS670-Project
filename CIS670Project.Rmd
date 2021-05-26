@@ -1,8 +1,8 @@
 ---
-title: "CIS670 Project"
+title: "CIS670 Project: Analyze COVID-19 in South Korea"
 author: "Grayson Guan, Haoran Wang"
 date: "5/1/2021"
-output: html_document
+output: html_notebook
 ---
 
 ```{r setup, include=FALSE}
@@ -13,28 +13,43 @@ knitr::opts_chunk$set(echo = TRUE)
 
 In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.
 
-## Load Datasets
+## Library Dependencies
+Our project utilizes the following libraries, please make sure they are installed by using the **install.packages()** command.
 
-There are 11 csv files in total:
+* tidyverse
+* ggplot2
+* ggmap
+* gganimate
+* tibbletime
+* data.table
+* htmltools
+* leaflet
+
+## Datasets
+The data is collected from KCDC (Korea Centers for Disease Control & Prevention).
+The data set is available on [Kaggle](https://www.kaggle.com/kimjihoo/coronavirusdataset).
 
 ```{r message = FALSE}
-case <- read.csv('./Data/Case.csv')
-patient <- read.csv('./Data/PatientInfo.csv')
-policy <- read.csv('./Data/Policy.csv')
-region <- read.csv('./Data/Region.csv')
-searchtrend <- read.csv('./Data/SearchTrend.csv')
-seoulfloating <- read.csv('./Data/SeoulFloating.csv')
-time <- read.csv('./Data/Time.csv')
-timeage <- read.csv('./Data/TimeAge.csv')
-timegender <- read.csv('./Data/TimeGender.csv')
-timeprovince <- read.csv('./Data/TimeProvince.csv')
-weather <- read.csv('./Data/Weather.csv')
-route <- read.csv('./Data/routes.csv')
-patient_1 <- read.csv('./Data/patients.csv')
+# Read Datasets, treat empty string value as NA
+case <- read.csv('./Data/Case.csv', na.strings = c("", "NA"))
+patient <- read.csv('./Data/PatientInfo.csv', na.strings = c("", "NA"))
+policy <- read.csv('./Data/Policy.csv', na.strings = c("", "NA"))
+region <- read.csv('./Data/Region.csv', na.strings = c("", "NA"))
+searchtrend <- read.csv('./Data/SearchTrend.csv', na.strings = c("", "NA"))
+seoulfloating <- read.csv('./Data/SeoulFloating.csv', na.strings = c("", "NA"))
+time <- read.csv('./Data/Time.csv', na.strings = c("", "NA"))
+timeage <- read.csv('./Data/TimeAge.csv', na.strings = c("", "NA"))
+timegender <- read.csv('./Data/TimeGender.csv', na.strings = c("", "NA"))
+timeprovince <- read.csv('./Data/TimeProvince.csv', na.strings = c("", "NA"))
+weather <- read.csv('./Data/Weather.csv', na.strings = c("", "NA"))
+route <- read.csv('./Data/routes.csv', na.strings = c("", "NA"))
+patient_1 <- read.csv('./Data/patients.csv', na.strings = c("", "NA"))
 ```
 
-## Load Libraries
+## Explotary Data Analysis (EDA)
+This section contains our analysis of the data in many directions by using visualization.
 
+### Load Libraries
 ```{r mesage = FALSE}
 library(tidyverse)
 library(ggplot2)
@@ -46,24 +61,157 @@ library(data.table)
 library(htmltools)
 library(leaflet)
 ```
+### Total Infections by Dates
+```{r message = FALSE, fig.height=8, fig.width=12}
+# Filter out empty value for confirmed date
+patient_dates <- patient_1 %>% 
+  filter(!is.na(confirmed_date))
 
-## Province with the Highest Confirmed Cases
+# Plot confirmed cases for each day
+patient_dates %>%
+  group_by(confirmed_date) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(as.Date(confirmed_date, format = "%m/%d/%Y"), n))+
+  geom_line(size = 2, alpha = 0.8, col="red")+
+  geom_point(size = 5, alpha = 1, col="purple")+
+  labs(title = "Confirmed Cases of COVID-19 in South Korea by Date",
+       subtitle = paste0("Total Confirmed Cases: ", nrow(patient)),
+       caption = "Green Line Indicates the Trend") + 
+  scale_x_date(date_labels = "%b %d", date_breaks = "2 days")+
+  theme_light() +
+  theme(plot.title = element_text(face = "bold", 
+                                  hjust = 0.5, size = 18, color = "black"),
+        plot.subtitle = element_text(face = "bold", 
+                                     size = 12, color = "blue")) +
+  ggrepel::geom_label_repel(aes(label=n), hjust=1.5, vjust=0.9, 
+                            fill ="orange") +
+  geom_smooth(method = "gam", se = TRUE, alpha = 0.5, col = "green")
+```
 
-```{r message = FALSE}
+### Confirmed Cases Among Different Age Groups
+```{r message = FALSE, fig.height=8, fig.width=8}
+# Calculate Age for each Confirmed Case
+patient_age <- patient_1
+patient_age$age = 2020 - patient_1$birth_year
+
+# Calculate Age Groups for Confirmed Cases by 10
+patient_age$age_group = cut(patient_age$age,
+                        breaks = seq(0,90, by=10),
+                        right = FALSE,
+                        labels = c("0-10","10-20","20-30",
+                                   "30-40","40-50","50-60",
+                                   "60-70","70-80","80-90"))
+
+patient_age <- patient_age %>%
+    select(age_group) %>%
+    na.omit() %>%
+    group_by(age_group) %>%
+    summarise(confirmed_cases = n())
+  
+ggplot(patient_age, aes(y = age_group, x = confirmed_cases, fill = age_group)) +
+  geom_bar(stat="identity") +
+  xlab("Confirmed Cases") +
+  ylab("Age Group") +
+  ggtitle(label = "Confirmed Cases by Age Group")
+```
+
+### Province with the Highest Confirmed Cases
+
+```{r message = FALSE, fig.height=8, fig.width=8}
 # Group number of patients by province
-byprovince <- patient%>%group_by(province)%>%summarise(n=n())
-# Reorder by the number of patients in each province
-byprovince <- byprovince[c(order(-byprovince$n)),]
+patient_province <- patient
+patient_province <- patient_province %>%
+  select(province) %>%
+  na.omit()%>%
+  group_by(province)%>%
+  summarise(n=n())
 
-ggplot(byprovince, aes(y=n, x=reorder(province,n), fill=province)) +
+ggplot(patient_province, aes(y=n, x=reorder(province,n), fill=province)) +
     geom_bar(stat="identity") +
     coord_flip() +
     xlab("Province Name") +
     ylab("Confirmed Cases") +
     ggtitle(label = "Confirmed Cases in Each Province")
 ```
-## Visualize Cases on a Map
-```{r message = FALSE}
+
+### Confirmed Cases among Genders
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_gender <- patient
+patient_gender <- patient_gender %>%
+  select(sex) %>%
+  na.omit() %>%
+  group_by(sex) %>%
+  summarise(patient_num = n())
+
+ggplot(patient_gender,
+       aes(x="",y=patient_num,fill=sex)) + 
+  geom_bar(width=1, stat="identity",color="white") + 
+  ggtitle(label = "Patient Gender Ratio in Seoul") + 
+  coord_polar("y",start=0) + 
+  geom_text(aes(label=paste0(round(patient_num/ sum(patient_num)*100,1),"%")),
+            position=position_stack(vjust=0.5)) + 
+  theme_void() + 
+  theme(plot.title = element_text(size = 30, face = "bold")) 
+```
+
+### Age Group vs. Province
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_age_province <- patient_1
+patient_age_province$age = 2020 - patient_1$birth_year
+patient_age_province$age_group = cut(patient_age_province$age,
+                        breaks = seq(0,90, by=10),
+                        right = FALSE,
+                        labels = c("0-10","10-20","20-30",
+                                   "30-40","40-50","50-60",
+                                   "60-70","70-80","80-90"))
+
+patient_age_province %>%
+    select(age_group, province) %>%
+    na.omit() %>%
+    group_by(age_group, province) %>%
+    summarise(Count = n()) %>%
+    ggplot() +
+    geom_tile(aes(x = age_group, y = province, fill = Count)) +
+    geom_vline(xintercept = seq(0.5,9.5,by = 1), linetype = 'dashed') +
+    geom_hline(yintercept = seq(0.5,14.5,by = 1), linetype = 'dashed') +
+    scale_fill_gradientn(colours = c("green","red"),
+                         values = c(0,0.1,1)) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_discrete(expand = c(0,0)) +
+    theme_classic() +
+    theme(text = element_text(size = 15, face = "bold"),
+          axis.text.x = element_text(angle = 90),
+          legend.position = "top",
+          legend.key.width = unit(3,"cm"))
+```
+
+### Age Group vs. Province vs. Gender
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_age_province_gender <- patient_age_province
+patient_age_province_gender %>%
+    select(sex, age_group, province) %>%
+    na.omit() %>%
+    group_by(sex, age_group, province) %>%
+    summarise(Count = n()) %>%
+    ggplot() +
+    geom_tile(aes(x = age_group, y = province, fill = Count)) +
+    geom_vline(xintercept = seq(0.5,9.5,by = 1), linetype = 'dashed') +
+    geom_hline(yintercept = seq(0.5,14.5,by = 1), linetype = 'dashed') +
+    scale_fill_gradientn(colours = c("green","red"),
+                         values = c(0,0.1,1)) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_discrete(expand = c(0,0)) +
+    theme_classic() +
+    theme(text = element_text(size = 15, face = "bold"),
+          axis.text.x = element_text(angle = 90),
+          legend.position = "top",
+          legend.key.width = unit(3,"cm"))   +
+    facet_wrap(~sex)
+```
+
+
+### Visualize Cases on a Map
+```{r message = FALSE, fig.height=8, fig.width=8}
 case$longitude <- as.numeric(as.character(case$longitude))
 case$latitude <- as.numeric(as.character(case$latitude))
 
@@ -87,8 +235,8 @@ figure + geom_point(data = case,
                         color=confirmed, group=confirmed))
 ```
 
-## Massive Infection Visualization
-```{r message = FALSE}
+### Massive Infection Visualization
+```{r message = FALSE, fig.height=8, fig.width=8}
 # Known Group Infection Events
 group_infec <- tibble(lon = c(127.0518049,126.9165592,127.1217472,128.7368285,129.0771404,128.4941047,128.5707814,128.5665743,128.9099632),
                           lat = c(37.2367708,37.6338843,37.3881528,35.6486172,35.2159947,36.0579173,35.8507155,35.8397168,36.9273528),
