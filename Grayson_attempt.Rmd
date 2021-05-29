@@ -1,0 +1,157 @@
+<<<<<<< HEAD
+---
+title: "CIS670 Project: Analyze COVID-19 in South Korea"
+author: "Grayson Guan, Haoran Wang"
+date: "5/1/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
+```
+
+## Introduction
+
+In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.
+
+## Library Dependencies
+Our project utilizes the following libraries, please make sure they are installed by using the **install.packages()** command.
+
+* tidyverse
+* ggplot2
+* ggmap
+* gganimate
+* tibbletime
+* data.table
+* htmltools
+* leaflet
+
+## Datasets
+The data is collected from KCDC (Korea Centers for Disease Control & Prevention).
+The data set is available on [Kaggle](https://www.kaggle.com/kimjihoo/coronavirusdataset).
+
+```{r message = FALSE}
+# Read Datasets, treat empty string value as NA
+case <- read.csv('./Data/Case.csv', na.strings = c("", "NA"))
+patient <- read.csv('./Data/PatientInfo.csv', na.strings = c("", "NA"))
+policy <- read.csv('./Data/Policy.csv', na.strings = c("", "NA"))
+region <- read.csv('./Data/Region.csv', na.strings = c("", "NA"))
+searchtrend <- read.csv('./Data/SearchTrend.csv', na.strings = c("", "NA"))
+seoulfloating <- read.csv('./Data/SeoulFloating.csv', na.strings = c("", "NA"))
+time <- read.csv('./Data/Time.csv', na.strings = c("", "NA"))
+timeage <- read.csv('./Data/TimeAge.csv', na.strings = c("", "NA"))
+timegender <- read.csv('./Data/TimeGender.csv', na.strings = c("", "NA"))
+timeprovince <- read.csv('./Data/TimeProvince.csv', na.strings = c("", "NA"))
+weather <- read.csv('./Data/Weather.csv', na.strings = c("", "NA"))
+route <- read.csv('./Data/routes.csv', na.strings = c("", "NA"))
+patient_1 <- read.csv('./Data/patients.csv', na.strings = c("", "NA"))
+```
+
+## Explotary Data Analysis (EDA)
+This section contains our analysis of the data in many directions by using visualization.
+
+### Load Libraries
+```{r mesage = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(gganimate)
+
+library(tibbletime)
+library(data.table)
+library(htmltools)
+library(leaflet)
+```
+
+
+### deceased Cases Among Different Age Groups
+```{r message = FALSE, fig.height=8, fig.width=8}
+# Calculate Age for each Confirmed Case
+patient_age <- patient_1
+patient_age$age = 2020 - patient_1$birth_year
+
+# Calculate Age Groups for Confirmed Cases by 10
+patient_age$age_group = cut(patient_age$age,
+                            breaks = seq(0,90, by=10),
+                            right = FALSE,
+                            labels = c("0-10","10-20","20-30",
+                                       "30-40","40-50","50-60",
+                                       "60-70","70-80","80-90"))
+patient_age = patient_age[!is.na(patient_age$deceased_date),]
+
+patient_age <- patient_age %>%
+  select(age_group) %>%
+  na.omit() %>%
+  group_by(age_group) %>%
+  summarise(deceased_cases = n())
+
+ggplot(patient_age, aes(y = age_group, x = deceased_cases, fill = age_group)) +
+  geom_bar(stat="identity") +
+  xlab("deceased Cases") +
+  ylab("Age Group") +
+  ggtitle(label = "deceased Cases by Age Group")
+
+```
+### deceased Cases Among Different Age Groups
+
+### deceased Cases among Genders
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_gender <- patient
+patient_gender = patient_gender[!is.na(patient_gender$deceased_date),]
+patient_gender <- patient_gender %>%
+  select(sex) %>%
+  na.omit() %>%
+  group_by(sex) %>%
+  summarise(patient_num = n())
+ggplot(patient_gender,
+       aes(x="",y=patient_num,fill=sex)) + 
+  geom_bar(width=1, stat="identity",color="white") + 
+  ggtitle(label = "deceased Gender Ratio in Seoul") + 
+  coord_polar("y",start=0) + 
+  geom_text(aes(label=paste0(round(patient_num/ sum(patient_num)*100,1),"%")),
+            position=position_stack(vjust=0.5)) + 
+  theme_void() + 
+  theme(plot.title = element_text(size = 30, face = "bold")) 
+```
+### mortality rate among Genders
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_gender <- patient
+patient_gender_d = patient_gender[!is.na(patient_gender$deceased_date),]
+
+patient_gender <- patient_gender %>%
+  select(sex) %>%
+  na.omit() %>%
+  group_by(sex) %>%
+  summarise(patient_num = n())
+
+patient_gender_d <- patient_gender_d %>%
+  select(sex) %>%
+  na.omit() %>%
+  group_by(sex) %>%
+  summarise(patient_num = n())
+
+patient_gender_d[2] = patient_gender_d[2]/ patient_gender[2] * 100
+
+ggplot(patient_gender_d, aes(x = sex, y = patient_num, fill = sex)) +
+  geom_bar(stat="identity") +
+  xlab("mortality rate") +
+  ylab("Gender") +
+  ggtitle(label = "Mortality Rate by Gender")
+```
+```{r message = FALSE, fig.height=8, fig.width=12}
+# Filter out empty value for confirmed date
+time_data <- time
+# Plot confirmed cases for each day
+ggplot () + geom_point(data = time_data, aes(x = date, y = confirmed), color = "blue") + 
+                geom_point(data = time_data, aes(x = date, y = deceased), color = "red") + 
+                geom_point(data = time_data, aes(x = date, y = released), color = "green")
+```
+=======
+>>>>>>> 3b3e5fb92d81a435e72c30d3790a52d8627ad92d
+
