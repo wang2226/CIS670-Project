@@ -15,6 +15,9 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Note
+You can view our project just by browsing through the README on GitHub, it displays all of our content except for the interactive leaflet map that shows the mass infection events. Therefore, an alternative way to view our project is through this link [View](http://htmlpreview.github.io/?https://github.com/wang2226/CIS670-Project/blob/master/README.html). 
+
 ## Introduction
 
 In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.
@@ -31,7 +34,6 @@ Our project utilizes the following libraries, please make sure they are installe
 * data.table
 * htmltools
 * leaflet
-* htmlwidgets
 
 ## Datasets
 The data is collected from KCDC (Korea Centers for Disease Control & Prevention).
@@ -68,7 +70,6 @@ library(tibbletime)
 library(data.table)
 library(htmltools)
 library(leaflet)
-library(htmlwidgets)
 ```
 ### Total Confirmed Cases by Dates
 ```{r message = FALSE, fig.height=8, fig.width=12}
@@ -427,7 +428,7 @@ agg_2 <- agg_1[, list(label=HTML(
 listed <- list(agg_2, group_infec_3)
 agg_3 <- rbindlist(listed, use.names = TRUE, fill = TRUE)
 
-m = agg_3 %>% 
+agg_3 %>% 
   leaflet() %>%
   setView(128.5, 36.5, zoom = 7) %>%
   addTiles() %>%
@@ -456,9 +457,6 @@ m = agg_3 %>%
                                 style = list(
                                   "color" = "red",
                                   "font-size" = "13px")))
-
-saveWidget(m, file="mass.html")
 ```
-![](http://htmlpreview.github.io/?https://github.com/wang2226/CIS670-Project/blob/master/mass.html)
 
 ## Regression Analysis
