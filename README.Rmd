@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 ```
 
 ## Note
-You can view our project just by browsing through the README on GitHub, it displays all of our content except for the interactive leaflet map that shows the mass infection events. Therefore, an alternative way to view our project is through this link [View](http://htmlpreview.github.io/?https://github.com/wang2226/CIS670-Project/blob/master/README.html). 
+You can view our project just by browsing through the README on GitHub, it displays all of our content except for the interactive leaflet map that shows the mass infection events. To view the interactive map, you need to download **README.html** and open it with a browser. We will demonstrate the interactive during in-class presentation.
 
 ## Introduction
 
