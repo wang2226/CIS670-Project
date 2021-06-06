@@ -137,6 +137,26 @@ ggplot(patient_age, aes(y = age_group, x = confirmed_cases, fill = age_group)) +
 **Analysis:**\
 As shown in the figure, the most affected age group is 20-30, the second most affected group is 50-60.
 
+
+### Most dangenrous group by age
+```{r message = FALSE, fig.height=8, fig.width=8}
+patient_age <- patient
+patient_age$contact_number[patient_age$contact_number == "-"] = NA
+patient_age_c = patient_age[!is.na(patient_age$contact_number),]
+patient_age_c$contact_number = as.numeric(patient_age_c$contact_number)
+
+
+patient_age = aggregate(patient_age_c$contact_number, by = list(Category = patient_age_c$age), FUN = mean)
+
+ggplot(patient_age, aes(y = Category, x = x, fill = Category)) +
+  geom_bar(stat="identity") +
+  xlab("Contact Number") +
+  ylab("Age Group") +
+  ggtitle(label = "Average Contact Number by Age Group")
+```
+**Analysis:**\
+As shown in the figure, On average, people in 20s-50s, and 70s have contact number above 30.
+
 ### Deceased Cases Among Different Age Groups
 ```{r message = FALSE, fig.height=8, fig.width=8}
 # Calculate Age for each Confirmed Case
