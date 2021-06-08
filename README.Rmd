@@ -19,11 +19,19 @@ knitr::opts_chunk$set(
 Depending on how you access our project, some figures may not be displayed properly:\
 
 * From RPubs: Everything works on [RPubs](https://rpubs.com/brucehrwang/cis670). This is the recommended way to view our project.
-* From GitHub: The README displays everything **EXCEPT** for the interactive leaflet map. To view the interactive map, you need to download **README.html** and open it with a browser.
+* From GitHub: The [README](https://rpubs.com/brucehrwang/cis670) displays everything **EXCEPT** for the interactive leaflet map. To view the interactive map, you need to download **README.html** and open it with a browser.
 
 ## Introduction
 
-In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.
+In this project, we perform in-depth EDA(Exploratory Data Analysis) on a collection of data sets about COVID-19 in South Korea. Our goal is to use these data to better understand COVID and learn how to prevent it effectively to save lives.\
+
+We answered the following questions by performing in-depth data visualization, and regression analysis.\
+
+1. What is the general trend of confirmed, released, and deceased cases of COVID-19 in South Korea? How can we visualize it on a map?\
+2. What can we learn from the COVID patients? How does COVID affect different age groups, gender, and location? What is the mortality rate among different age groups and gender groups?\
+3. How can we identify massive infection events? What can we learn from those massive infection events?\
+4. How is the web search trend affected by COVID in South Korea since the pandemic started?
+5. Is there a relationship between daily temperature and the number of confirmed cases?\
 
 ## Library Dependencies
 Our project utilizes the following libraries, please make sure they are installed by using the **install.packages()** command.
@@ -39,9 +47,25 @@ Our project utilizes the following libraries, please make sure they are installe
 * leaflet
 * scales
 
+```{r mesage = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(gganimate)
+
+library(tibbletime)
+library(data.table)
+library(htmltools)
+library(leaflet)
+
+library(scales)
+```
+
 ## Datasets
+There are many COVID datasets available on Kaggle. However, most of them only have information on date and the number of confirmed cases. This South Korea COVID dataset, on the other hand, contains comprehensive information on cases, patient info, weather, geographical location, contact tracing, etc. Therefore, it is ideal for this project.\
+
 The data is collected from KCDC (Korea Centers for Disease Control & Prevention).
-The data set is available on [Kaggle](https://www.kaggle.com/kimjihoo/coronavirusdataset).
+The data set is available on [Kaggle](https://www.kaggle.com/kimjihoo/coronavirusdataset). The following code snippet loads the dataset into R workspace, the best way to view the data is through R.\
 
 ```{r message = FALSE}
 # Read Datasets, treat empty string value as NA
@@ -60,24 +84,9 @@ route <- read.csv('./Data/routes.csv', na.strings = c("", "NA"))
 patient_1 <- read.csv('./Data/patients.csv', na.strings = c("", "NA"))
 ```
 
-## Explotary Data Analysis (EDA)
-This section contains our analysis of the data in many directions by using visualization.
+## Qestion 1: What is the general trend of confirmed, released, and deceased cases of COVID-19 in South Korea?
 
-### Load Libraries
-```{r mesage = FALSE}
-library(tidyverse)
-library(ggplot2)
-library(ggmap)
-library(gganimate)
-
-library(tibbletime)
-library(data.table)
-library(htmltools)
-library(leaflet)
-
-library(scales)
-```
-### Daily Confirmed Cases
+### Daily Confirmed Cases Trend
 ```{r message = FALSE, fig.height=8, fig.width=12}
 # Filter out empty value for confirmed date
 patient_dates <- patient_1 %>% 
@@ -90,7 +99,7 @@ patient_dates %>%
   ggplot(aes(as.Date(confirmed_date, format = "%m/%d/%Y"), n))+
   geom_line(size = 2, alpha = 0.8, col="red")+
   geom_point(size = 5, alpha = 1, col="purple")+
-  labs(title = "Confirmed Cases of COVID-19 in South Korea by Date",
+  labs(title = "Daily Confirmed Cases of COVID-19 in South Korea by Date",
        subtitle = paste0("Total Confirmed Cases: ", nrow(patient)),
        caption = "Green Line Indicates the Trend") + 
   scale_x_date(date_labels = "%b %d", date_breaks = "2 days") +
@@ -105,7 +114,27 @@ patient_dates %>%
 ```
 
 **Analysis:**\
-As shown in the figure, we can see that there is a huge surge from late Feburary to Early March in South Korea.
+As shown in the figure, marked by the green line, we can see that there is a huge surge from late Feburary to Early March in South Korea.
+
+### Total Confirmed Cases, Deceased Cases, and Released Cases Trend
+```{r message = FALSE, fig.height=8, fig.width=12}
+# Filter out empty value for confirmed date
+time_data <- time
+# Plot confirmed cases for each day
+ggplot () + 
+  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = confirmed), color = "blue") +
+  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = deceased), color = "red") + 
+  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = released), color = "green") +
+  scale_x_date(date_labels = "%b %d", date_breaks = "30 days") +
+  labs(title = "Total Confirmed, Deased, Released Cases by Date",
+       caption = "Blue: Confirmed, Red: Deceased, Green: Released")
+  
+```
+
+**Analysis:**\
+As shown in the figure, we can see that the total deceased cases trend is relatively flat, while both the total confirmed and total released cases has a huge surge around late Feburary. This matches the observation from previous fiture, where there is a huge surge in confirmed cases around late Feburary to early March.
+
+## Question 2: What can we learn from the COVID patients?
 
 ### Confirmed Cases Among Different Age Groups
 ```{r message = FALSE, fig.height=8, fig.width=8}
@@ -282,20 +311,6 @@ ggplot(patient_gender_d, aes(x = sex, y = patient_num, fill = sex)) +
   ggtitle(label = "Mortality Rate by Gender")
 ```
 
-### Confirmed Cases, Deceased Cases, and Released Cases Trend
-```{r message = FALSE, fig.height=8, fig.width=12}
-# Filter out empty value for confirmed date
-time_data <- time
-# Plot confirmed cases for each day
-ggplot () + 
-  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = confirmed), color = "blue") +
-  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = deceased), color = "red") + 
-  geom_point(data = time_data, aes(x = as.Date(date, format = "%Y-%m-%d"), y = released), color = "green") +
-  scale_x_date(date_labels = "%b %d", date_breaks = "30 days") +
-  labs(title = "Confirmed, Deased, Released Cases Trend",
-       caption = "Blue: Confirmed, Red: Deceased, Green: Released")
-  
-```
 
 ### Confirmed Cases: Age Group vs. Province
 ```{r message = FALSE, fig.height=8, fig.width=8}
@@ -358,6 +373,9 @@ patient_age_province_gender %>%
 **Analysis:**\
 As shown in the figure, the most affected group is age from 30-40, male, living in capital area.
 
+
+## Question 3: How can we identify massive infection events?
+
 ### Visualize Infection Events on a Map
 ```{r message = FALSE, fig.height=8, fig.width=8}
 case$longitude <- as.numeric(as.character(case$longitude))
@@ -373,7 +391,7 @@ map = get_googlemap(center = c(lon = 127.7669, lat = 35.9087),
 
 figure <- ggmap(map) +
     theme_void() +
-    ggtitle("COVID-19 Cases in South Korea") +
+    ggtitle("Number of Confrimed Cases by Case ID in South Korea") +
     scale_color_gradientn(colors = rainbow(5)) +
     theme(plot.title = element_text(color = "blue"),
           panel.border = element_rect(color = "grey", fill = NA, size = 2))
@@ -386,7 +404,7 @@ figure + geom_point(data = case,
 **Analysis:**\
 As shown in the figure, the area around Seoul have a large number of small infection events. There is a massive infection event in the city of Nam-gu, Daegu province. This massive infection event is at Shincheonji Church.
 
-### Confirmed Cases Over Time Animation
+### Infection Events Over Time Animation
 ```{r message = FALSE, warning = FALSE, results = FALSE}
 # Get a data frame that contains both time and coordinates
 case_bak <- subset(case, select = c(province, longitude, latitude))
@@ -405,7 +423,7 @@ map = get_googlemap(center = c(lon = 127.7669, lat = 35.9087),
 
 figure <- ggmap(map) +
     theme_void() +
-    ggtitle("COVID-19 Cases in South Korea") +
+    ggtitle("Number of Confrimed Cases by Case ID in South Korea Over Time") +
     scale_color_gradientn(colors = rainbow(5)) +
     theme(plot.title = element_text(color = "blue"),
           panel.border = element_rect(color = "grey", fill = NA, size = 2))
@@ -421,30 +439,6 @@ As shown in the figure, The two COVID center is around Seoul and Daegu province.
 
 
 ![](./README_figs/README-unnamed-chunk-15-1.gif)
-
-
-### Confirmed Case Trajectory Visualization
-```{r message = FALSE, fig.height=8, fig.width=8}
-# Set Google API key
-register_google(key = "AIzaSyCiHpBw6DsGxXs6pgfgQTd2tP4wAvzrmJI")
-# Get Map from Google Maps API
-map = get_googlemap(center = c(lon = 127.7669, lat = 35.9087),
-                    zoom = 7, scale = 4,
-                    maptype = 'roadmap',
-                    color = 'color')
-
-ggmap(map) +
-  geom_point(data = route,
-             aes(x = longitude, y = latitude,col =  as.factor(global_id)), size = 5) +
-  geom_line(data = route,
-            aes(x = longitude, y = latitude,col =  as.factor(global_id), group = as.factor(global_id)), 
-            size = 2,alpha = 0.7) +
-  guides(col = FALSE) +
-  theme(text = element_text(size = 15, face = "bold"))
-```
-
-**Analysis:**\
-As shown in the figure, we can see that some patients carried COVID from the mainland of South Korea to Jeju island.
 
 ### Massive Infections with Details Visualization
 
@@ -524,6 +518,8 @@ agg_3 %>%
                                   "font-size" = "13px")))
 ```
 
+## Question 4: How is the web search trend affected by COVID in South Korea since the pandemic started?
+
 ### Trends in Web Search
 ```{r message = FALSE, fig.height=8, fig.width=20}
 time_case <- read.csv("./Data/TimeProvince.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
@@ -557,7 +553,7 @@ search_and_case %>%
 As shown in the figure, the search for "cold", "coronavirus", "flu" and "pneumonia" skyrocketed since the beginign of the pandemic, then they started to die down as time went by.
 
 
-## Linear Regression
+## Is there a relationship between daily temperature and the number of confirmed cases?
 During the early stage of COVID, there is a rumor saying that COVID will go away as temperature warms up. We are interested in finding if there is a correlation between temperature and confirmed COVID cases. We performed a simple linear regression on temperature and confirmed cases for the period between 1/20 - 3/20.
 
 ```{r message = FALSE, fig.height=8, fig.width=8}
@@ -568,13 +564,17 @@ t <- time %>% select(date,confirmed)
 
 wt <- merge(w, t, by="date")
 
-wt <- head(wt, 61)
-
 fit <- lm(confirmed ~ temperature, data=wt)
 summary(fit)
 ```
 
+**Analysis:**
+As the summary shows, the p-value is very small (<2.2e-16), we can reject the null hypothesis. Therefore, there is a relationship between temperature and the number of confirmed cases.\
+
+
 ```{r message = FALSE, fig.height=10, fig.width=10}
+wt <- head(wt, 61)
+
 ggplot(wt, aes(x=temperature, y=confirmed)) +
          geom_point(aes(color=date)) +
          stat_smooth(method='lm') +
@@ -582,4 +582,4 @@ ggplot(wt, aes(x=temperature, y=confirmed)) +
 ```
 
 **Analysis:**\
-There is no significant relationships between temperature and the number of confirmed cases.
+We select data from 1-20 to 3-20 for clear visualization. A simple linear regression regression does not fit the data. The relationship cannot be explained linearly.
