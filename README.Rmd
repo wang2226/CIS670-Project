@@ -85,6 +85,7 @@ patient_1 <- read.csv('./Data/patients.csv', na.strings = c("", "NA"))
 ```
 
 ## Qestion 1: What is the general trend of confirmed, released, and deceased cases of COVID-19 in South Korea?
+In this section, we will be plotting the the confirmed, released, and deceased cases of COVID-19 in South Korea against time. These trends would help us or other researchers with building math models and identify key features that could potentially lowered the growth rate of the confirmed or deceased cases throughout time.
 
 ### Daily Confirmed Cases Trend
 ```{r message = FALSE, fig.height=8, fig.width=12}
@@ -135,7 +136,7 @@ ggplot () +
 As shown in the figure, we can see that the total deceased cases trend is relatively flat, while both the total confirmed and total released cases has a huge surge around late Feburary. This matches the observation from previous fiture, where there is a huge surge in confirmed cases around late Feburary to early March.
 
 ## Question 2: What can we learn from the COVID patients?
-
+In this section, we will be dividing the patients into age and gender groups, and compare the different statistics among them. These comparisons could help normal individuals to be more aware of their risk of having COVID-19, and medical professionals to better care for patients in different groups.
 ### Confirmed Cases Among Different Age Groups
 ```{r message = FALSE, fig.height=8, fig.width=8}
 # Calculate Age for each Confirmed Case
@@ -374,8 +375,8 @@ patient_age_province_gender %>%
 As shown in the figure, the most affected group is age from 30-40, male, living in capital area.
 
 
-## Question 3: How can we identify massive infection events?
-
+## Question 3: How can we identify mass infection events?
+In this section we visualize the infection events using the Google Map API. The following figures illustrate the mass infection locations in South Korea. These illustrations could  help local disease control centers to better prevent  Covid-19 infection spikes. 
 ### Visualize Infection Events on a Map
 ```{r message = FALSE, fig.height=8, fig.width=8}
 case$longitude <- as.numeric(as.character(case$longitude))
@@ -435,8 +436,7 @@ figure + geom_point(data = geo_time,
 ```
 
 **Analysis:**\
-As shown in the figure, The two COVID center is around Seoul and Daegu province.
-
+The following animation shows the number of confirmed cases by location increasing over time. The figure shows that Covid-19 spreads most rapidly in Seoul, Incheon, and Daegu. However, the spread of Covid-19 in Busan, the second largest city in South Korea, was low in comparison. Future work investigating the different treatments of disease control in Busan and other large cities could give insight in how to reduce the spread in large populations. 
 
 ![](./README_figs/README-unnamed-chunk-15-1.gif)
 
@@ -517,6 +517,8 @@ agg_3 %>%
                                   "color" = "red",
                                   "font-size" = "13px")))
 ```
+**Analysis:**
+This figure shows the COVID-19 contact locations for patients who reported where they were exposed. Community spread in residential areas is common. There are several locations that have large numbers of infections. Knowing what types of locations tend to have large COVID-19 infection events could help the CDC to identify particular community events according to the building type and come up with better policies.
 
 ## Question 4: How is the web search trend affected by COVID in South Korea since the pandemic started?
 
@@ -528,6 +530,7 @@ time_case <- read.csv("./Data/TimeProvince.csv", header = TRUE, stringsAsFactor 
 search_trend <- read.csv("./Data/SearchTrend.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
     gather(key="Search_word", value="SearchTrend", -date) %>%
     filter(date >= "2020-01-20")
+
 
 search_and_case <- search_trend  %>% left_join(time_case, by = 'date')
 
@@ -547,14 +550,50 @@ search_and_case %>%
    scale_x_date(date_labels = "%b %d", date_breaks = "30 days") +
    ylab("Search Volume or Cumulative Cases in log scale") + 
    ggtitle("Growth of COVID-19 cases and Web Search in South Korea")
+
+temp_trend <- read.csv("./Data/SearchTrend.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
+    gather(key="Search_word", value="SearchTrend", -date) %>%
+    filter(date >= "2020-01-20") %>%
+    filter(Search_word == "coronavirus")
+st_covid = subset(search_trend, select = -c(Search_word))
+names(st_covid)[2] <- "covid"
+
+temp_trend <- read.csv("./Data/SearchTrend.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
+    gather(key="Search_word", value="SearchTrend", -date) %>%
+    filter(date >= "2020-01-20") %>%
+    filter(Search_word == "cold")
+st_cold = subset(search_trend, select = -c(Search_word))
+names(st_cold)[2] <- "cold"
+temp_trend <- read.csv("./Data/SearchTrend.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
+    gather(key="Search_word", value="SearchTrend", -date) %>%
+    filter(date >= "2020-01-20") %>%
+    filter(Search_word == "flu")
+st_flu = subset(search_trend, select = -c(Search_word))
+names(st_flu)[2] <- "flu"
+temp_trend <- read.csv("./Data/SearchTrend.csv", header = TRUE, stringsAsFactor =FALSE)  %>% 
+    gather(key="Search_word", value="SearchTrend", -date) %>%
+    filter(date >= "2020-01-20") %>%
+    filter(Search_word == "pneumonia")
+st_pneumonia = subset(search_trend, select = -c(Search_word))
+names(st_pneumonia)[2] <- "pneumonia"
+
+st <- merge(st_pneumonia, st_flu, by="date")
+st <- merge(st, st_cold, by="date")
+st <- merge(st, st_covid, by="date")
+t <- time %>% select(date,confirmed)
+t <- merge (st, t, by = "date")
+
+fit_lm = lm(confirmed~ . - date, data = t)
+summary (fit_lm)
 ```
 
 **Analysis:**\
-As shown in the figure, the search for "cold", "coronavirus", "flu" and "pneumonia" skyrocketed since the beginign of the pandemic, then they started to die down as time went by.
+This plot shows that the search for "cold", "coronavirus", "flu" and "pneumonia" skyrocketed as confirmed cases of COVID-19 went up, and as the growth rate of the cases decreases, the search trends also decrease. This is particularly helpfully because it shows that the general public's awareness of the virus is related to its spread. In addition, we used a linear fit to predict confirmed cases with different search trend. In time of pandemic, common sickness' search trends have similar weight in predicting confirmed cases.
 
 
 ## Is there a relationship between daily temperature and the number of confirmed cases?
 During the early stage of COVID, there is a rumor saying that COVID will go away as temperature warms up. We are interested in finding if there is a correlation between temperature and confirmed COVID cases. We performed a simple linear regression on temperature and confirmed cases for the period between 1/20 - 3/20.
+
 
 ```{r message = FALSE, fig.height=8, fig.width=8}
 w <- weather %>% group_by(date) %>% summarize(mean(avg_temp))
@@ -564,8 +603,8 @@ t <- time %>% select(date,confirmed)
 
 wt <- merge(w, t, by="date")
 
-fit <- lm(confirmed ~ temperature, data=wt)
-summary(fit)
+fit_lm <- lm(confirmed ~ . -date, data=wt)
+summary(fit_lm)
 ```
 
 **Analysis:**
@@ -578,8 +617,8 @@ wt <- head(wt, 61)
 ggplot(wt, aes(x=temperature, y=confirmed)) +
          geom_point(aes(color=date)) +
          stat_smooth(method='lm') +
+         stat_smooth(method ='glm')+
   labs(title = "Temperature and Number of Confirmed Cases", x = "Temp", y= "Case")
 ```
-
 **Analysis:**\
 We select data from 1-20 to 3-20 for clear visualization. A simple linear regression regression does not fit the data. The relationship cannot be explained linearly.
