@@ -85,9 +85,11 @@ patient_1 <- read.csv('./Data/patients.csv', na.strings = c("", "NA"))
 ```
 
 ## Qestion 1: What is the general trend of confirmed, released, and deceased cases of COVID-19 in South Korea?
-In this section, we will be plotting the the confirmed, released, and deceased cases of COVID-19 in South Korea against time. These trends would help us or other researchers with building math models and identify key features that could potentially lowered the growth rate of the confirmed or deceased cases throughout time.
+In this section, we will be plotting the the confirmed, released, and deceased cases of COVID-19 in South Korea against time. These trends would help us or other researchers with building math models and identify key features that could potentially lowered the growth rate of the confirmed or deceased cases throughout time.\
 
 ### Daily Confirmed Cases Trend
+We plotted the daily confirmed cases by date. We also used geom_smooth function to plot the trend for better visualization.
+
 ```{r message = FALSE, fig.height=8, fig.width=12}
 # Filter out empty value for confirmed date
 patient_dates <- patient_1 %>% 
@@ -118,6 +120,8 @@ patient_dates %>%
 As shown in the figure, marked by the green line, we can see that there is a huge surge from late Feburary to Early March in South Korea.
 
 ### Total Confirmed Cases, Deceased Cases, and Released Cases Trend
+After plotting the daily confirmed cases trend, we are interested in learning the trend for total confirmed, deceased, and released cases since the start of the pandemic. The blue line marked the total confirmed cases, the red line marked the total deceased cases, and the green line marked the total released cases.\
+
 ```{r message = FALSE, fig.height=8, fig.width=12}
 # Filter out empty value for confirmed date
 time_data <- time
@@ -137,6 +141,7 @@ As shown in the figure, we can see that the total deceased cases trend is relati
 
 ## Question 2: What can we learn from the COVID patients?
 In this section, we will be dividing the patients into age and gender groups, and compare the different statistics among them. These comparisons could help normal individuals to be more aware of their risk of having COVID-19, and medical professionals to better care for patients in different groups.
+
 ### Confirmed Cases Among Different Age Groups
 ```{r message = FALSE, fig.height=8, fig.width=8}
 # Calculate Age for each Confirmed Case
@@ -377,7 +382,10 @@ As shown in the figure, the most affected group is age from 30-40, male, living 
 
 ## Question 3: How can we identify mass infection events?
 In this section we visualize the infection events using the Google Map API. The following figures illustrate the mass infection locations in South Korea. These illustrations could  help local disease control centers to better prevent  Covid-19 infection spikes. 
+
 ### Visualize Infection Events on a Map
+We want to mark the infection events along with their infection numbers on a map for better geological visualization. We used ggmap function to create a base map of South Korea, then plot each infection events with different size and color to mark its infection number.\
+
 ```{r message = FALSE, fig.height=8, fig.width=8}
 case$longitude <- as.numeric(as.character(case$longitude))
 case$latitude <- as.numeric(as.character(case$latitude))
@@ -403,9 +411,11 @@ figure + geom_point(data = case,
 ```
 
 **Analysis:**\
-As shown in the figure, the area around Seoul have a large number of small infection events. There is a massive infection event in the city of Nam-gu, Daegu province. This massive infection event is at Shincheonji Church.
+As shown in the figure, the area around Seoul have a large number of small infection events. There is a massive infection event in the city of Nam-gu, Daegu province. This massive infection event is at Shincheonji Church, which infected 4511 people.\
 
 ### Infection Events Over Time Animation
+After creating the plot above, we are interested in learning how those infection events evolve over time. We combined the case dataframe with timprovince dataframe to get a dataframe with both geological and time infromation. Then, we use gganimate to create a gif that shows how the infection events evolve over time.\
+
 ```{r message = FALSE, warning = FALSE, results = FALSE}
 # Get a data frame that contains both time and coordinates
 case_bak <- subset(case, select = c(province, longitude, latitude))
@@ -441,6 +451,7 @@ The following animation shows the number of confirmed cases by location increasi
 ![](./README_figs/README-unnamed-chunk-15-1.gif)
 
 ### Massive Infections with Details Visualization
+To take the visualization to another level, we created an interactive map that let users view the massive infection events along with patient info by using leaflet widget.\
 
 ```{r message = FALSE, fig.height=8, fig.width=8}
 # Known Group Infection Events
@@ -521,6 +532,7 @@ agg_3 %>%
 This figure shows the COVID-19 contact locations for patients who reported where they were exposed. Community spread in residential areas is common. There are several locations that have large numbers of infections. Knowing what types of locations tend to have large COVID-19 infection events could help the CDC to identify particular community events according to the building type and come up with better policies.
 
 ## Question 4: How is the web search trend affected by COVID in South Korea since the pandemic started?
+We are interested in learning how COVID affect the web search trend. We plotted four different search word (cold, coronavirus, flue, pneumonia) along with confirmed, deceased and released cases over time. We also use a linear model to predict confirmed cases with different search trend.
 
 ### Trends in Web Search
 ```{r message = FALSE, fig.height=8, fig.width=20}
@@ -594,7 +606,6 @@ This plot shows that the search for "cold", "coronavirus", "flu" and "pneumonia"
 ## Is there a relationship between daily temperature and the number of confirmed cases?
 During the early stage of COVID, there is a rumor saying that COVID will go away as temperature warms up. We are interested in finding if there is a correlation between temperature and confirmed COVID cases. We performed a simple linear regression on temperature and confirmed cases for the period between 1/20 - 3/20.
 
-
 ```{r message = FALSE, fig.height=8, fig.width=8}
 w <- weather %>% group_by(date) %>% summarize(mean(avg_temp))
 colnames(w) <- c("date","temperature")
@@ -622,3 +633,10 @@ ggplot(wt, aes(x=temperature, y=confirmed)) +
 ```
 **Analysis:**\
 We select data from 1-20 to 3-20 for clear visualization. A simple linear regression regression does not fit the data. The relationship cannot be explained linearly.
+
+## Discussion
+### Limitation
+There are a lot of missing values in the dataset. This definitely impact our analysis since we have to drop a significant amount of NA values. However, it is understandable that in real world, data collection is far from perfect, many data cannot be collected due to privacy and other reasons. Also, the time span for this dataset is from January to June, although it is sufficient enough, we would like to have a broader time period to study. Also, since this dataset only records COVID in South Korea, it is not representative enough to generalize our observations to other countries in the world.
+
+### Impact
+Our analysis shows the most affected group of people who has a higher chance of catching COVID, higher chance of dying due to COVID. Therefore, those group of people should take extra precaution dealing with COVID. Also, our analysis shows the trend, and massive infection events, it is useful for the infection experts to study how to prevent COVID from spreading. The trend of gross should also be informative for local CDC to properly allocate medical resources to different areas.
